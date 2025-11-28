@@ -1,0 +1,7 @@
+{
+  "name": "Gemini Chaos Visualizer",
+  "description": "A 3D interactive particle simulation visualizing 'chaos energy'. Use your voice or text to describe a mood, and let Gemini AI configure the physics and aesthetics of the chaos in real-time.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
