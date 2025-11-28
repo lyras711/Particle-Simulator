@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { ChaosParams, DEFAULT_PARAMS } from '../types';
-import { Sparkles, Sliders, Play, RotateCcw, Mic, Square, Type, Camera, Eye, Layers, Maximize2, Activity, Music, Upload, Video } from 'lucide-react';
+import { Sparkles, Sliders, Play, RotateCcw, Mic, Square, Type, Camera, Eye, Layers, Maximize2, Activity, Music, Upload, Video, XCircle } from 'lucide-react';
 import { generateChaosConfig } from '../services/geminiService';
 import { audioAnalyzer } from '../services/audioAnalyzer';
 
@@ -51,9 +50,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ currentParams, onUpdate, is
           handleChange('audioReactive', false);
       } else {
           try {
+              // Ensure we stop any file playback first
+              audioAnalyzer.stop();
+              setFileName(null);
+              
               await audioAnalyzer.startMicrophone();
               setMicActive(true);
-              setFileName(null);
               handleChange('audioReactive', true);
           } catch (e) {
               alert("Microphone access denied or error.");
@@ -64,11 +66,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ currentParams, onUpdate, is
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
+          // Stop mic if active
+          if (micActive) {
+              setMicActive(false);
+          }
           audioAnalyzer.startFile(file);
           setFileName(file.name);
-          setMicActive(false);
           handleChange('audioReactive', true);
       }
+  };
+  
+  const stopAudio = () => {
+      audioAnalyzer.stop();
+      setMicActive(false);
+      setFileName(null);
+      handleChange('audioReactive', false);
   };
 
   return (
@@ -192,19 +204,29 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ currentParams, onUpdate, is
                     <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
                 </label>
             </div>
-            
+
             {currentParams.audioReactive && (
-                <div className="mt-3">
-                     <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Sensitivity</span>
-                        <span>{currentParams.audioSensitivity?.toFixed(1)}</span>
+                <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-2">
+                     <button 
+                        onClick={stopAudio}
+                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors border border-red-500/20"
+                     >
+                        <XCircle className="w-3 h-3" />
+                        Stop Audio
+                     </button>
+                     
+                     <div>
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Sensitivity</span>
+                            <span>{currentParams.audioSensitivity?.toFixed(1)}</span>
+                        </div>
+                        <input
+                            type="range" min="0.1" max="5.0" step="0.1"
+                            value={currentParams.audioSensitivity ?? 1.5}
+                            onChange={(e) => handleChange('audioSensitivity', parseFloat(e.target.value))}
+                            className="w-full accent-green-500 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                        />
                       </div>
-                      <input
-                        type="range" min="0.1" max="5.0" step="0.1"
-                        value={currentParams.audioSensitivity ?? 1.5}
-                        onChange={(e) => handleChange('audioSensitivity', parseFloat(e.target.value))}
-                        className="w-full accent-green-500 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                      />
                 </div>
             )}
         </div>

@@ -78,7 +78,7 @@ const ParticleShaderMaterial = new THREE.ShaderMaterial({
 const TrailMaterial = new THREE.LineBasicMaterial({
   vertexColors: true,
   transparent: true,
-  opacity: 0.4, // Trails are subtle ghosts
+  opacity: 0.6, // Increased visibility
   blending: THREE.AdditiveBlending,
   depthWrite: false,
 });
@@ -94,7 +94,7 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
   const [targetPoints, setTargetPoints] = useState<Float32Array | null>(null);
 
   // Initialize simulation state
-  const { particles, velocities, initialPositions, grid, nextList, trails } = useMemo(() => {
+  const { particles, velocities, initialPositions, grid, nextList, trails, lifetimes } = useMemo(() => {
     const count = MAX_PARTICLES;
     const positions = new Float32Array(count * 3);
     const initialPositions = new Float32Array(count * 3);
@@ -102,6 +102,7 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
     const sizes = new Float32Array(count);
     const alphas = new Float32Array(count);
     const vel = new Float32Array(count * 3);
+    const lifetimes = new Float32Array(count);
     
     // Trail Buffers (2 points per particle = 1 line segment)
     // Format: [x1,y1,z1, x2,y2,z2, ...]
@@ -140,7 +141,8 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
       initialPositions[i * 3 + 2] = z;
 
       sizes[i] = (0.2 + Math.random() * 0.8); 
-      alphas[i] = 0.1 + Math.random() * 0.9;
+      alphas[i] = 0.0; // Start invisible, fade in with lifetime
+      lifetimes[i] = Math.random(); // Random start life
     }
 
     return { 
@@ -149,7 +151,8 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
       initialPositions,
       grid,
       nextList,
-      trails: { positions: trailPositions, colors: trailColors }
+      trails: { positions: trailPositions, colors: trailColors },
+      lifetimes
     };
   }, []);
 
@@ -283,7 +286,7 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
     }
   }, [params.colorPrimary, params.colorSecondary, params.particleSize, trails.colors]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!pointsRef.current) return;
 
     const time = state.clock.getElapsedTime();
@@ -357,6 +360,9 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
         }
     }
 
+    // Safety bounding radius squared (very large, just to prevent NaN/Infinity issues)
+    const MAX_BOUNDS_SQ = 100000; 
+
     for (let i = 0; i < activeCount; i++) {
       const ix = i * 3;
       const iy = i * 3 + 1;
@@ -365,13 +371,6 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
       let x = positions[ix];
       let y = positions[iy];
       let z = positions[iz];
-
-      // Update Start of Trail (Previous Position)
-      if (showTrails) {
-          trailPos[i * 6 + 0] = x;
-          trailPos[i * 6 + 1] = y;
-          trailPos[i * 6 + 2] = z;
-      }
 
       // --- REPULSION FORCE ---
       if (repulsion > 0.05) {
@@ -412,6 +411,9 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
       
       if (hasText) {
         // TARGET MODE (Text)
+        // Reset lifetime so text particles don't die
+        lifetimes[i] = 1.0;
+
         const pointIndex = i % numTextPoints;
         const tx = targetPoints![pointIndex * 3];
         const ty = targetPoints![pointIndex * 3 + 1];
@@ -444,6 +446,12 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
 
       } else {
         // CHAOS MODE (Original)
+        
+        // Decrease Lifetime
+        // Life decays faster if speed is higher, but has a base decay rate
+        const decay = 0.05 * speed + 0.1;
+        lifetimes[i] -= delta * decay;
+
         const pfX = Math.sin(y * pFreq + time * 0.1);
         const pfY = Math.sin(z * pFreq + time * 0.1); 
         const pfZ = Math.sin(x * pFreq + time * 0.1);
@@ -470,58 +478,82 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
       y += velocities[iy] * speed;
       z += velocities[iz] * speed;
 
-      // Update End of Trail (New Position)
+      // Update Trails (Velocity-based streaks)
+      // We draw a line from Current Position BACKWARDS along the velocity vector.
+      // This creates a "warp speed" streak effect.
       if (showTrails) {
-        trailPos[i * 6 + 3] = x;
-        trailPos[i * 6 + 4] = y;
-        trailPos[i * 6 + 5] = z;
+        const trailScale = 6.0; // Multiplier to make streaks visible
+
+        // Head (Current Pos)
+        trailPos[i * 6 + 0] = x;
+        trailPos[i * 6 + 1] = y;
+        trailPos[i * 6 + 2] = z;
+
+        // Tail (Dragged behind)
+        trailPos[i * 6 + 3] = x - (velocities[ix] * speed * trailScale);
+        trailPos[i * 6 + 4] = y - (velocities[iy] * speed * trailScale);
+        trailPos[i * 6 + 5] = z - (velocities[iz] * speed * trailScale);
       }
 
-      // --- BOUNDARY / RESET LOGIC ---
+      // --- BOUNDARY / RESPAWN LOGIC ---
       const distSq = x*x + y*y + z*z;
       
-      if (!hasText) {
-          // Audio volume can slightly expand the bounding box
-          const expansion = 1.0 + (audioBass * 0.5);
-          const maxRadiusSq = 400 * expansion; 
+      // Respawn if:
+      // 1. Life has expired (and not showing text)
+      // 2. OR it has flown exceptionally far (safety net)
+      const shouldRespawn = !hasText && (lifetimes[i] <= 0 || distSq > MAX_BOUNDS_SQ);
 
-          if (distSq > maxRadiusSq) {
-            // Respawn random inside
-            const r = 2 * Math.cbrt(Math.random()) * expansion; 
-            const theta = Math.random() * 2 * Math.PI;
-            const phi = Math.acos(2 * Math.random() - 1);
-            
-            x = r * Math.sin(phi) * Math.cos(theta);
-            y = r * Math.sin(phi) * Math.sin(theta);
-            z = r * Math.cos(phi);
+      if (shouldRespawn) {
+        // Respawn logic
+        // Reset life
+        lifetimes[i] = 1.0; 
+        
+        // Pick new random start position (spawn volume)
+        // Spawn within a smaller central sphere to create outward flow
+        const r = 4 * Math.cbrt(Math.random()); 
+        const theta = Math.random() * 2 * Math.PI;
+        const phi = Math.acos(2 * Math.random() - 1);
+        
+        x = r * Math.sin(phi) * Math.cos(theta);
+        y = r * Math.sin(phi) * Math.sin(theta);
+        z = r * Math.cos(phi);
 
-            velocities[ix] = 0;
-            velocities[iy] = 0;
-            velocities[iz] = 0;
-            
-            alphas[i] = 0;
+        // Reset velocity
+        velocities[ix] = 0;
+        velocities[iy] = 0;
+        velocities[iz] = 0;
+        
+        // Reset alpha immediately
+        alphas[i] = 0;
 
-            // Reset trail to single point to avoid streaking across screen
-            if (showTrails) {
-              trailPos[i*6+0] = x; trailPos[i*6+1] = y; trailPos[i*6+2] = z;
-              trailPos[i*6+3] = x; trailPos[i*6+4] = y; trailPos[i*6+5] = z;
-            }
-          } else {
-            if (alphas[i] < 1.0) alphas[i] += 0.02;
-          }
-      } else {
-           if (alphas[i] < 1.0) alphas[i] += 0.02;
+        // Reset trail to point to avoid cross-screen flash
+        if (showTrails) {
+          trailPos[i*6+0] = x; trailPos[i*6+1] = y; trailPos[i*6+2] = z;
+          trailPos[i*6+3] = x; trailPos[i*6+4] = y; trailPos[i*6+5] = z;
+        }
       }
+
+      // --- ALPHA / VISIBILITY UPDATE ---
       
-      // Pulse alpha based on speed
-      const velMag = Math.sqrt(velocities[ix]**2 + velocities[iy]**2 + velocities[iz]**2);
       let targetAlpha = 0.0;
+
       if (hasText) {
+          // Text Mode: Alpha based on pulse / shimmer
+          const velMag = Math.sqrt(velocities[ix]**2 + velocities[iy]**2 + velocities[iz]**2);
           targetAlpha = 0.5 + Math.sin(time * 3.0 + x * 0.5) * 0.25; 
           targetAlpha += Math.min(0.5, velMag * 3.0);
       } else {
-          const flashFactor = 5.0;
-          targetAlpha = Math.min(1.0, velMag * flashFactor);
+          // Chaos Mode: Alpha based on Lifetime (Fade In -> Sustain -> Fade Out)
+          const life = lifetimes[i];
+          // Smooth sine curve for fade in/out
+          // life 1.0 -> 0.0
+          // sin(life * PI) creates 0 -> 1 -> 0
+          targetAlpha = Math.sin(life * Math.PI) * 1.2; 
+          targetAlpha = Math.min(1.0, Math.max(0.0, targetAlpha));
+          
+          // Speed based flash
+          const velMag = Math.sqrt(velocities[ix]**2 + velocities[iy]**2 + velocities[iz]**2);
+          targetAlpha *= (1.0 + velMag); 
       }
       
       // Audio brightens particles on beat
@@ -530,7 +562,9 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
       }
 
       targetAlpha = Math.max(0.0, Math.min(1.0, targetAlpha));
-      alphas[i] = alphas[i] * 0.85 + targetAlpha * 0.15; 
+      
+      // Linear interpolation for smooth alpha transitions
+      alphas[i] = alphas[i] * 0.9 + targetAlpha * 0.1; 
 
       positions[ix] = x;
       positions[iy] = y;
