@@ -67,7 +67,7 @@ const App: React.FC = () => {
             enablePan={false} 
             enableZoom={true} 
             minDistance={5} 
-            maxDistance={100} 
+            maxDistance={500} 
             autoRotate={params.autoRotate ?? true}
             autoRotateSpeed={params.autoRotateSpeed ?? 0.5}
           />
