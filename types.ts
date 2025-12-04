@@ -19,6 +19,7 @@ export interface ChaosParams {
   // Interactive Text
   text?: string;        // Text to visualize
   textDepth: number;    // Extrusion depth of the text (0.0 to 5.0)
+  fontFamily: string;   // Font used for text generation
 
   // Camera Controls
   autoRotate: boolean;
@@ -49,6 +50,7 @@ export const DEFAULT_PARAMS: ChaosParams = {
   repulsion: 0.0,
   text: '',
   textDepth: 1.0,
+  fontFamily: 'Inter',
 
   autoRotate: true,
   autoRotateSpeed: 0.5,

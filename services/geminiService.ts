@@ -26,6 +26,7 @@ export const generateChaosConfig = async (userPrompt: string): Promise<GeminiCon
       - patternScale: Frequency of the structured lattice pattern (float 0.1 - 4.0).
       - repulsion: Particle repulsion strength (float 0.0 - 2.0). Use higher values for 'solid' or 'filled' looks.
       - textDepth: 3D extrusion depth for text (float 0.0 - 5.0).
+      - fontFamily: The font style for text. Options: 'Inter' (Modern/Bold), 'Playfair Display' (Elegant/Serif), 'Roboto Mono' (Tech/Code), 'Pacifico' (Playful/Cursive), 'Creepster' (Scary/Chaos).
       - autoRotate: Whether the camera spins around the scene (boolean).
       - autoRotateSpeed: Speed of camera rotation (float -5.0 to 5.0). Negative spins left.
       - trails: Enable particle motion trails (boolean). Good for "fast", "warp", "speed" descriptions.
@@ -54,6 +55,7 @@ export const generateChaosConfig = async (userPrompt: string): Promise<GeminiCon
                 patternScale: { type: Type.NUMBER },
                 repulsion: { type: Type.NUMBER },
                 textDepth: { type: Type.NUMBER },
+                fontFamily: { type: Type.STRING, enum: ['Inter', 'Playfair Display', 'Roboto Mono', 'Pacifico', 'Creepster'] },
                 autoRotate: { type: Type.BOOLEAN },
                 autoRotateSpeed: { type: Type.NUMBER },
                 trails: { type: Type.BOOLEAN },

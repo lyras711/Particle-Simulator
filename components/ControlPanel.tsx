@@ -30,7 +30,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ currentParams, onUpdate, is
     setReasoning(null);
     try {
       const result = await generateChaosConfig(prompt);
-      // Preserve existing text if AI doesn't return it (it won't, but good practice)
+      // Preserve existing text if AI doesn't return it
       onUpdate({ ...result.params, text: currentParams.text });
       setReasoning(result.reasoning);
     } catch (e) {
@@ -123,20 +123,38 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ currentParams, onUpdate, is
                   />
               </div>
               
-              {/* Text Depth Slider - Only show if text is entered */}
+              {/* Text Options - Only show if text is entered */}
               {currentParams.text && (
-                   <div className="animate-in fade-in slide-in-from-top-1 duration-300 bg-white/5 rounded-lg p-2 border border-white/5">
-                      <div className="flex items-center gap-2 mb-1">
-                          <Layers className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-400">3D Depth</span>
-                          <span className="text-xs text-gray-500 ml-auto">{currentParams.textDepth?.toFixed(1) ?? '1.0'}</span>
-                      </div>
-                      <input
-                        type="range" min="0.0" max="5.0" step="0.1"
-                        value={currentParams.textDepth ?? 1.0}
-                        onChange={(e) => handleChange('textDepth', parseFloat(e.target.value))}
-                        className="w-full accent-blue-400 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                      />
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                    {/* Font Selector */}
+                    <div className="flex gap-2">
+                      <select 
+                        value={currentParams.fontFamily || 'Inter'}
+                        onChange={(e) => handleChange('fontFamily', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 px-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                      >
+                        <option value="Inter">Inter (Bold Sans)</option>
+                        <option value="Playfair Display">Playfair (Serif)</option>
+                        <option value="Roboto Mono">Roboto (Mono)</option>
+                        <option value="Pacifico">Pacifico (Script)</option>
+                        <option value="Creepster">Creepster (Chaos)</option>
+                      </select>
+                    </div>
+
+                    {/* Depth Slider */}
+                    <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Layers className="w-3 h-3 text-gray-400" />
+                            <span className="text-xs text-gray-400">3D Depth</span>
+                            <span className="text-xs text-gray-500 ml-auto">{currentParams.textDepth?.toFixed(1) ?? '1.0'}</span>
+                        </div>
+                        <input
+                          type="range" min="0.0" max="5.0" step="0.1"
+                          value={currentParams.textDepth ?? 1.0}
+                          onChange={(e) => handleChange('textDepth', parseFloat(e.target.value))}
+                          className="w-full accent-blue-400 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                        />
+                     </div>
                    </div>
               )}
           </div>

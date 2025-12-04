@@ -175,13 +175,17 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
       return;
     }
 
+    // Wait for fonts to load slightly to avoid Flash of Unstyled Text
+    // A simple timeout isn't perfect but helps with React re-renders
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Use a large font size for resolution
     const fontSize = 150; 
-    const font = `900 ${fontSize}px Inter, sans-serif`;
+    // Construct font string with fallback
+    // e.g. "900 150px 'Playfair Display', sans-serif"
+    const font = `900 ${fontSize}px "${params.fontFamily || 'Inter'}", sans-serif`;
     ctx.font = font;
     
     const text = params.text;
@@ -246,7 +250,7 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
     }
     
     setTargetPoints(new Float32Array(points));
-  }, [params.text, params.textDepth]);
+  }, [params.text, params.textDepth, params.fontFamily]);
 
   // Handle Color & Size updates
   useEffect(() => {
