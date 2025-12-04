@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ChaosParams, DEFAULT_PARAMS } from '../types';
 import { Sparkles, Sliders, Play, RotateCcw, Mic, Square, Type, Camera, Eye, Layers, Maximize2, Activity, Music, Upload, Video, XCircle, Menu, ChevronLeft } from 'lucide-react';
@@ -438,21 +439,36 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ currentParams, onUpdate, is
                 </div>
                 
                 {/* Colors */}
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                     <label className="text-xs text-gray-400 block mb-1">Primary</label>
-                     <div className="flex items-center gap-2">
-                        <input type="color" value={currentParams.colorPrimary} onChange={(e) => handleChange('colorPrimary', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none" />
-                        <span className="text-xs text-gray-500 font-mono">{currentParams.colorPrimary}</span>
-                     </div>
-                   </div>
-                   <div>
-                     <label className="text-xs text-gray-400 block mb-1">Secondary</label>
-                     <div className="flex items-center gap-2">
-                        <input type="color" value={currentParams.colorSecondary} onChange={(e) => handleChange('colorSecondary', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none" />
-                        <span className="text-xs text-gray-500 font-mono">{currentParams.colorSecondary}</span>
-                     </div>
-                   </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">Primary</label>
+                      <div className="flex items-center gap-2">
+                          <input type="color" value={currentParams.colorPrimary} onChange={(e) => handleChange('colorPrimary', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none" />
+                          <span className="text-xs text-gray-500 font-mono">{currentParams.colorPrimary}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">Secondary</label>
+                      <div className="flex items-center gap-2">
+                          <input type="color" value={currentParams.colorSecondary} onChange={(e) => handleChange('colorSecondary', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none" />
+                          <span className="text-xs text-gray-500 font-mono">{currentParams.colorSecondary}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <span className="text-xs text-gray-400">Dynamic Color Cycle</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={currentParams.enableColorCycle ?? true}
+                        onChange={(e) => handleChange('enableColorCycle', e.target.checked)}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
                 </div>
                 
                 <button 

@@ -26,6 +26,7 @@ export interface ChaosParams {
 
   // Effects
   trails: boolean;      // Enable geometry-based motion trails
+  enableColorCycle: boolean; // Toggle time-based hue shifting
 
   // Audio Reactivity
   audioReactive: boolean; // Enable audio modulation
@@ -53,6 +54,7 @@ export const DEFAULT_PARAMS: ChaosParams = {
   autoRotateSpeed: 0.5,
 
   trails: false,
+  enableColorCycle: true,
 
   audioReactive: false,
   audioSensitivity: 1.5,

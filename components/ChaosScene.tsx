@@ -1,3 +1,4 @@
+
 import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -16,6 +17,7 @@ const ParticleShaderMaterial = new THREE.ShaderMaterial({
     uPixelRatio: { value: 1.0 },
     uTime: { value: 0.0 },
     uAudioPulse: { value: 0.0 }, // New uniform for audio bass kick
+    uColorCycle: { value: 1.0 }, // 1.0 = on, 0.0 = off
   },
   vertexShader: `
     attribute float size;
@@ -40,6 +42,7 @@ const ParticleShaderMaterial = new THREE.ShaderMaterial({
   `,
   fragmentShader: `
     uniform float uTime;
+    uniform float uColorCycle;
     varying vec3 vColor;
     varying float vAlpha;
     
@@ -61,11 +64,15 @@ const ParticleShaderMaterial = new THREE.ShaderMaterial({
       float glow = 1.0 - (r * r);
       glow = pow(glow, 2.0); // Sharpen center
       
-      // Dynamic color shift: Cycle hue based on time
-      // uTime * 0.1 controls the speed of the color cycle
-      vec3 shiftedColor = hueShift(vColor, uTime * 0.1);
+      vec3 finalColor = vColor;
 
-      gl_FragColor = vec4(shiftedColor, vAlpha * glow);
+      // Dynamic color shift: Cycle hue based on time if enabled
+      if (uColorCycle > 0.5) {
+         // uTime * 0.1 controls the speed of the color cycle
+         finalColor = hueShift(vColor, uTime * 0.1);
+      }
+
+      gl_FragColor = vec4(finalColor, vAlpha * glow);
     }
   `,
   transparent: true,
@@ -309,6 +316,8 @@ const ChaosScene: React.FC<ChaosSceneProps> = ({ params }) => {
     }
     
     ParticleShaderMaterial.uniforms.uTime.value = time;
+    // Update color cycle uniform
+    ParticleShaderMaterial.uniforms.uColorCycle.value = params.enableColorCycle ? 1.0 : 0.0;
 
     const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
     const alphas = pointsRef.current.geometry.attributes.alpha.array as Float32Array;

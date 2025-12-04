@@ -29,6 +29,7 @@ export const generateChaosConfig = async (userPrompt: string): Promise<GeminiCon
       - autoRotate: Whether the camera spins around the scene (boolean).
       - autoRotateSpeed: Speed of camera rotation (float -5.0 to 5.0). Negative spins left.
       - trails: Enable particle motion trails (boolean). Good for "fast", "warp", "speed" descriptions.
+      - enableColorCycle: Whether colors should shift hue over time (boolean). Set to true for "rainbow", "psychedelic", "dynamic". Set to false for "monochrome", "specific color", "static".
 
       Provide a short 'reasoning' string explaining why you chose these values based on the mood.
       `,
@@ -56,6 +57,7 @@ export const generateChaosConfig = async (userPrompt: string): Promise<GeminiCon
                 autoRotate: { type: Type.BOOLEAN },
                 autoRotateSpeed: { type: Type.NUMBER },
                 trails: { type: Type.BOOLEAN },
+                enableColorCycle: { type: Type.BOOLEAN },
               },
               required: ["speed", "noiseScale", "chaosLevel", "particleCount", "particleSize", "colorPrimary", "colorSecondary", "bloomStrength", "drag", "forceMagnitude", "patternScale", "repulsion", "autoRotate", "autoRotateSpeed"]
             },
